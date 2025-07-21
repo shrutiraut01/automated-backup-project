@@ -1,79 +1,104 @@
+# Automated Backup and Rotation Script with Google Drive Integration
 
-🔄 Automated Backup and Rotation Script with Google Drive Integration
-This project automates the process of backing up a directory on a Linux server (e.g., AWS EC2). It zips the target directory, uploads it to Google Drive using rclone, and applies retention rules to manage storage space. Additionally, it supports webhook notifications to inform about backup status.
+This project provides a robust and automated backup solution that supports scheduled backups, daily/weekly/monthly rotation, Google Drive integration via `rclone`, and notification via webhook. It's ideal for developers and teams who need to regularly back up a GitHub-hosted project or directory with automatic cloud uploads and log tracking.
 
-🧾 Overview
-📦 Creates scheduled, timestamped backups of a project folder
-☁️ Uploads backups to Google Drive via rclone
-🔁 Enforces smart backup rotation (daily, weekly, monthly)
-🔔 Sends optional webhook notifications (e.g., to Slack, Discord, or webhook.site)
-🕒 Supports automated cron job scheduling
+---
+
+## 📁 Project Structure
+
+auto-backup-project/
+├── backup.py # Main backup script (Python)
+├── config.env # Environment variables (Google Drive path, webhook URL, etc.)
+├── backup.sh # Shell script to call Python script and load config
+├── cron_jobs.txt # Crontab entries for scheduling
+├── logs/ # Backup log files
+└── backups/ # Generated backups (structured by date)
+
+---
+
+## ✅ Features
+
+- 🔁 **Automatic Daily/Weekly/Monthly Backup Rotation**
+- ☁️ **Google Drive Upload** using `rclone`
+- 📦 **Zips the Project Directory**
+- 📜 **Log File Generation**
+- 🚨 **Webhook Notification Support**
+- 📅 **Cron-Based Scheduling**
+- 🔐 **Environment-Based Configuration**
+
+---
+
+## ⚙️ Prerequisites
+
+- Python 3.x
+- rclone configured with your Google Drive account
+- `zip`, `cron`, and basic Linux utilities
+- Webhook URL (optional)
+
+---
+
+## 🛠️ Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/auto-backup-project.git
+cd auto-backup-project
+2. Configure Environment
+Create a .env file or modify config.env:
 
 
-⚙️ How to Install & Configure rclone
-Install rclone
-curl https://rclone.org/install.sh | sudo bash
-Run configuration wizard
-   rclone config
-Create a new remote named gdrive:
-Choose n (new remote)
-Name: gdrive
-Choose drive as the storage (usually option 18)
-Use n for auto config (headless setup)
-On your local machine, run:
- rclone authorize "drive"
-Paste the resulting token JSON into your EC2 config prompt.
-
-Test upload
-echo "hello" > test.txt
-rclone copy test.txt gdrive:
-Check Google Drive for test.txt.
-
-🔧 How to Configure Retention Settings
-Edit the .env file in your project folder:
-
+# config.env
 PROJECT_NAME=MyProject
-PROJECT_DIR=/home/ubuntu/MyProject
-
-BACKUP_DIR=/home/ubuntu/auto-backup-project/backups
-
+SOURCE_DIR=/path/to/project
+BACKUP_DIR=./backups
+LOG_DIR=./logs
+RCLONE_REMOTE=gdrive:MyBackups
+WEBHOOK_URL=https://your-webhook.site/...
 RETENTION_DAYS=7
 RETENTION_WEEKS=4
-RETENTION_MONTHS=3
+RETENTION_MONTHS=6
+✅ Make sure rclone is already configured with gdrive remote using rclone config.
 
-RCLONE_REMOTE=gdrive
-RCLONE_FOLDER=EC2Backups
+3. Run Manually (Optional)
 
-LOG_FILE=/home/ubuntu/auto-backup-project/logs/backup.log
+bash backup.sh
+4. Set Up Cron Jobs
+To schedule automatic daily, weekly, and monthly backups:
 
-NOTIFY_URL=https://webhook.site/your-unique-url
-ENABLE_NOTIFY=true
-🧾 Python Backup Script (backup.py)
-This is the core script that handles backup creation, rotation, Google Drive upload, logging, and webhook notifications.
 
-Paste code from backup.py file.
+crontab cron_jobs.txt
+Example entries in cron_jobs.txt:
 
-✅ Run the Script Manually
-Make the script executable
-chmod +x backup.py
-Run the script
-python3 backup.py
-Optional:
-python3 backup.py --no-notify
-⏲️ Automate with Cron
-To run the backup every day at 2:00 AM:
+0 2 * * * /bin/bash /path/to/auto-backup-project/backup.sh daily
+0 3 * * 0 /bin/bash /path/to/auto-backup-project/backup.sh weekly
+0 4 1 * * /bin/bash /path/to/auto-backup-project/backup.sh monthly
+🔄 Rotation Policy
+Daily: Keep last 7 backups
 
-Open Crontab
-crontab -e
-Choose nano as the editor (if prompted).
+Weekly: Keep last 4 backups
 
-Add Cron Job Entry
-0 2 * * * /home/ubuntu/auto-backup-project/venv/bin/python3 /home/ubuntu/auto-backup-project/backup.py >> /home/ubuntu/auto-backup-project/logs/cron.log 2>&1
-Save and Exit In nano:
-Press Ctrl + O, then Enter to save
-Press Ctrl + X to exit
-You should see:
+Monthly: Keep last 6 backups
 
-crontab: installing new crontab
-Verify Cron is Set
-crontab -l
+Older files are automatically deleted to save space
+
+📤 Google Drive Upload
+Uses rclone to upload zipped backups to your Google Drive.
+
+Ensure the target folder (MyBackups) exists in your drive or will be auto-created.
+
+Upload logs are saved with timestamps.
+
+🚨 Webhook Integration
+Notifies your custom endpoint (like Slack, Discord, etc.) after each backup.
+
+Sends JSON payload with status and filename.
+
+📄 Logs
+Logs are created in the logs/ folder for each backup attempt.
+
+Sample log output:
+
+[2025-07-15 18:29:33] Created backup: MyProject_20250715_182933.zip
+[2025-07-15 18:29:36] Uploaded to Google Drive: MyProject_20250715_182933.zip
+[2025-07-15 18:29:37] Notification sent to webhook
